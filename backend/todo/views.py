@@ -1,0 +1,71 @@
+from django.shortcuts import render
+from rest_framework.decorators import api_view
+from .models import Todo
+from .serializers import TodoSerializers
+from rest_framework.response import Response
+from rest_framework import status
+
+
+@api_view(['GET'])
+def list_todos(request):
+    todos = Todo.objects.all()
+    serializer = TodoSerializers(todos, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+def add_todo(request):
+    serializer = TodoSerializers(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['PUT'])
+def update_todo(request, pk):
+    try:
+        todo = Todo.objects.get(pk=pk)
+
+    except Todo.DoesNotExist:
+        return Response(
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if 'completed' in request.data:
+        todo.completed = request.data['completed']
+        todo.save()
+
+        serializer = TodoSerializers(todo)
+        return Response(serializer.data)
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['DELETE'])
+def delete_todo(request, pk):
+    try:
+        todo = Todo.objects.get(pk=pk)
+
+    except Todo.DoesNotExist:
+        return Response(
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    todo.delete()
+
+    return Response(
+        {"message": "Todo deleted successfully"},
+        status=status.HTTP_204_NO_CONTENT
+    )
